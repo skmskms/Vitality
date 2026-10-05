@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vitality – Daily Task Manager</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+#root{height:100%}
+html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:#eef1f8}html.dark body{background:#05060a}
+.bg-app{background:radial-gradient(60% 40% at 20% 0%,#c7d7ff88,transparent),radial-gradient(50% 40% at 90% 10%,#ffd1e888,transparent),#eef1f8}
+.dark .bg-app{background:radial-gradient(60% 40% at 20% 0%,#2b3a8a55,transparent),radial-gradient(50% 40% at 90% 10%,#6b1d5c44,transparent),#05060a}
+.glass{background:rgba(255,255,255,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.7)}
+.dark .glass{background:rgba(24,26,36,.6);border:1px solid rgba(255,255,255,.07);box-shadow:0 0 30px #5b6cff12}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;scroll-behavior:smooth}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.pop{animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.up{animation:up .35s cubic-bezier(.22,1,.36,1)}
+@keyframes down{from{transform:translateY(-20px);opacity:0}to{transform:none;opacity:1}}
+.down{animation:down .3s cubic-bezier(.22,1,.36,1)}
+.spring{transition:all .45s cubic-bezier(.34,1.56,.64,1)}
+input,textarea,select{outline:none}
+@keyframes wave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.wave{animation:wave 3s linear infinite}
+.glow{animation:glow 1.3s ease-in-out infinite}@keyframes glow{0%,100%{filter:drop-shadow(0 0 4px #fb923c)}50%{filter:drop-shadow(0 0 13px #f97316)}}
+.err{border:1px solid #ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.22)}
+</style></head>
+<body><div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useMemo}=React;
+const P={bell:'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0',sun:'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',moon:'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',home:'M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',chart:'M18 20V10M12 20V4M6 20v-6',compass:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M16 8l-2 6-6 2 2-6z',users:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',user:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8',check:'M20 6L9 17l-5-5',plus:'M12 5v14M5 12h14',trash:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6',chat:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',heart:'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z',share:'M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13',x:'M18 6L6 18M6 6l12 12',chev:'M6 9l6 6 6-6',edit:'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',flame:'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.4 1-3a2.5 2.5 0 0 0 2.5 2.5z',link:'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',download:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',mail:'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6',image:'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M21 15l-5-5L5 21',star:'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3-6.2 3.3L7 14.2 2 9.3l6.9-1z'};
+const I=({n,s=20,c=''})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={c}><path d={P[n]}/></svg>;
+const K='vitality-v1';
+const ymd=(o=0)=>{const d=new Date();d.setDate(d.getDate()+o);return d.toISOString().slice(0,10)};const today=()=>ymd(0);
+const demoImg='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="320"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#c35bff"/></linearGradient></defs><rect width="600" height="320" fill="url(#g)"/><text x="300" y="180" font-size="54" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="700">12 books read</text></svg>');
+const seed={session:null,profile:null,theme:'light',hasAd:true,reflected:'',reflections:[],
+tasks:[
+{id:1,time:'06:00',title:'Morning Workout',t:'m',done:true,cm:[]},
+{id:2,time:'08:00',title:'Book Reading',t:'m',done:true,cm:[]},
+{id:3,time:'09:30',title:'Deep Work Session',t:'m',done:false,cm:[]},
+{id:4,time:'13:00',title:'Hydration & Lunch Break',t:'m',done:false,cm:[]},
+{id:5,time:'21:30',title:'Evening Wind-down',t:'m',done:false,cm:[]},
+{id:6,time:'',title:'Prepare Q3 presentation',t:'h',done:false,cm:[{a:'You',x:'Need chart from analytics team'}]},
+{id:7,time:'',title:'Call mom',t:'h',done:false,cm:[]},
+{id:8,time:'',title:'Organize desk',t:'l',done:false,cm:[]},
+{id:9,time:'',title:'Watch cooking tutorial',t:'l',done:true,cm:[]}],
+posts:[
+{id:1,u:'Aarav S.',e:'🏃',x:'Hit a 7-day streak of morning workouts! Mandatory schedule = game changer.',l:24,lk:false,c:[{a:'Meera',x:'Inspiring!'}]},
+{id:2,u:'Priya K.',e:'📚',x:'Finished my 12th book of the year. 100% score today 🎉',l:51,lk:false,c:[],img:demoImg},
+{id:3,u:'Rohan D.',e:'🧘',x:'Calm routine intensity works wonders for stress. Try it.',l:17,lk:false,c:[]}],
+hist:[62,80,100,40,75,100,0],prefs:{all:true,deadline:true,water:true},waterTarget:8,missedDay:'',streak:{n:4,last:ymd(-1)},water:{d:'',n:0},
+notifs:[{g:'Today',x:'Time for Morning Workout',tm:'6:00 AM'},{g:'Today',x:'Aarav liked your post',tm:'9:12 AM'},{g:'Yesterday',x:'You hit a 100% score! 🔥',tm:'9:40 PM'},{g:'Yesterday',x:'Weekly report is ready',tm:'8:00 AM'}]};
+const load=()=>{try{const s=JSON.parse(localStorage.getItem(K));if(s)return{...seed,...s,prefs:{...seed.prefs,...(s.prefs||{})}}}catch(e){}return seed};
+const fmt=t=>{if(!t)return'';const[h,m]=t.split(':').map(Number);return`${(h%12)||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`};
+
+const Shell=({children})=><div className="relative h-full w-full flex items-center justify-center md:p-6 overflow-hidden">
+<div className="hidden md:block absolute inset-0 pointer-events-none" aria-hidden="true"><div className="absolute -top-24 -left-24 w-[460px] h-[460px] rounded-full bg-blue-500/30 blur-3xl"/><div className="absolute -bottom-32 -right-24 w-[520px] h-[520px] rounded-full bg-fuchsia-500/25 blur-3xl"/><div className="absolute top-1/3 left-1/2 w-[320px] h-[320px] rounded-full bg-orange-400/15 blur-3xl"/></div>
+<div className="relative w-full h-full md:h-[min(880px,calc(100vh-48px))] md:max-w-[430px] md:rounded-[44px] md:border md:border-white/50 dark:md:border-white/10 md:shadow-[0_30px_90px_rgba(40,40,110,.35)] overflow-hidden md:[transform:translateZ(0)] text-slate-900 dark:text-white bg-app flex flex-col">{children}</div></div>;
+function Ring({pct,onClick,open}){const r=52,C=2*Math.PI*r;return(
+<button onClick={onClick} className="relative w-36 h-36 shrink-0 active:scale-95 spring" aria-label="Toggle mandatory schedule">
+<svg viewBox="0 0 120 120" className="w-full h-full -rotate-90"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stopColor="#5b8cff"/><stop offset="1" stopColor="#c35bff"/></linearGradient></defs>
+<circle cx="60" cy="60" r={r} fill="none" stroke="currentColor" className="text-slate-200 dark:text-white/10" strokeWidth="10"/>
+<circle cx="60" cy="60" r={r} fill="none" stroke="url(#g)" strokeWidth="10" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C*(1-pct/100)} style={{transition:'stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)'}}/></svg>
+<div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-bold tracking-tight">{pct}%</span><span className="text-[11px] opacity-60 flex items-center gap-1">Score <I n="chev" s={12} c={open?'rotate-180 spring':'spring'}/></span></div></button>)}
+
+function Modal({children,onClose,center}){return(
+<div className={`fixed inset-0 z-50 flex ${center?'items-center':'items-end'} justify-center bg-black/40 backdrop-blur-sm`} onClick={onClose}>
+<div onClick={e=>e.stopPropagation()} className="up glass relative w-full max-w-md m-3 rounded-3xl p-5 shadow-2xl bg-white/90 dark:bg-zinc-900/90 max-h-[calc(100%-24px)] overflow-y-auto">{children}</div></div>)}
+
+const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const MOB=v=>/^\+?\d{7,15}$/.test(v.replace(/[\s-]/g,''));
+const bd=e=>`w-full rounded-2xl px-4 py-3 bg-black/5 dark:bg-white/10 text-[15px] border border-transparent ${e?'err':''}`;
+function Auth({done}){
+const[reg,setReg]=useState(false),[m,setM]=useState('email'),[v,setV]=useState(''),[pw,setPw]=useState(''),[pw2,setPw2]=useState(''),[otp,setOtp]=useState(false),[er,setEr]=useState({}),[msg,setMsg]=useState('');
+const clr=k=>setEr(e=>({...e,[k]:''}));
+const idErr=()=>{const t=v.trim();if(!t)return m==='email'?'Email address is required.':'Mobile number is required.';if(m==='email')return EMAIL.test(t)?'':'Please enter a valid email address';return MOB(t)?'':'Please enter a valid mobile number (digits only, 7–15)'};
+const submit=e=>{e.preventDefault();setMsg('');const x={id:idErr(),pw:'',pw2:''};
+if(m==='mobile'&&otp)x.pw=!pw.trim()?'OTP is required.':/^\d{6}$/.test(pw.trim())?'':'OTP must be exactly 6 digits';
+else x.pw=!pw?'Password is required.':pw.length<6?'Password must be at least 6 characters':'';
+if(reg)x.pw2=!pw2?'Please confirm your password.':pw2!==pw?'Passwords do not match':'';
+setEr(x);if(Object.values(x).some(Boolean))return;
+done({id:v.trim(),email:m==='email'?v.trim():'',token:'tok_'+Math.random().toString(36).slice(2)})};
+const forgot=()=>{if(m!=='email'){setEr({id:'Password reset needs an email address — switch to Email.'});return}const x=idErr();setEr({id:x});setMsg(x?'':`Reset link sent to ${v.trim()}`)};
+const tab=(k,l)=><button type="button" key={k} onClick={()=>{setM(k);setOtp(false);setPw('');setEr({});setMsg('')}} className={`flex-1 py-1.5 rounded-lg text-sm font-medium spring ${m===k?'bg-white dark:bg-white/20 shadow':''}`}>{l}</button>;
+return(<Shell><div className="flex-1 min-h-0 scroll flex p-5"><div className="glass rounded-3xl p-6 w-full max-w-sm up m-auto">
+<div className="text-center mb-4"><div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-fuchsia-500 flex items-center justify-center text-white mb-3"><I n="flame" s={32}/></div><h1 className="text-2xl font-bold">Vitality</h1><p className="text-sm opacity-60">{reg?'Create your account':'Welcome back'}</p></div>
+<button type="button" onClick={()=>done({id:'google',email:'',token:'tok_g'})} className="w-full py-3 rounded-2xl bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 font-semibold flex items-center justify-center gap-2 active:scale-95 spring"><span className="font-bold text-blue-500">G</span> Continue with Google / Gmail</button>
+<div className="text-center text-xs opacity-50 my-3">or</div>
+<form onSubmit={submit} noValidate>
+<div className="flex bg-black/5 dark:bg-white/10 rounded-xl p-1 mb-3">{tab('email','Email')}{tab('mobile','Mobile')}</div>
+<div className="space-y-2">
+<div><input className={bd(er.id)} inputMode={m==='email'?'email':'tel'} placeholder={m==='email'?'Email address':'Mobile number'} value={v} onChange={e=>{setV(e.target.value);clr('id');setMsg('')}}/>{er.id&&<Err m={er.id}/>}</div>
+<div><input className={bd(er.pw)} type={m==='mobile'&&otp?'text':'password'} inputMode={m==='mobile'&&otp?'numeric':undefined} placeholder={m==='mobile'&&otp?'6-digit OTP':'Password (min 6 characters)'} value={pw} onChange={e=>{setPw(e.target.value);clr('pw')}}/>{er.pw&&<Err m={er.pw}/>}</div>
+{reg&&<div><input className={bd(er.pw2)} type="password" placeholder="Confirm password" value={pw2} onChange={e=>{setPw2(e.target.value);clr('pw2')}}/>{er.pw2&&<Err m={er.pw2}/>}</div>}
+<div className="flex justify-between text-sm">{!reg&&m==='email'&&<button type="button" className="text-blue-500 font-medium" onClick={forgot}>Forgot Password / Reset Password?</button>}
+{m==='mobile'&&<button type="button" className="text-blue-500 font-medium" onClick={()=>{setOtp(!otp);setPw('');clr('pw');setMsg(otp?'':'OTP sent (demo) — enter any 6 digits')}}>{otp?'Use password instead':'Use OTP instead'}</button>}</div>
+{msg&&<p className="text-xs text-emerald-500 down">{msg}</p>}
+<button type="submit" className="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white font-semibold active:scale-95 spring">{reg?'Create Account':'Sign In'}</button></div></form>
+<p className="text-center text-sm mt-4 opacity-80">{reg?'Already have an account?':'New here?'} <button type="button" className="text-blue-500 font-semibold" onClick={()=>{setReg(!reg);setEr({});setMsg('');setPw2('')}}>{reg?'Sign In':'Register'}</button></p></div></div></Shell>)}
+
+function Onboard({done}){
+const[s,setS]=useState(0),[er,setEr]=useState({}),[p,setP]=useState({name:'',age:'',gender:'',h:'',hu:'cm',w:'',wu:'kg',role:'',intensity:'',goal:''});
+const set=(k,v)=>{setP(q=>({...q,[k]:v}));setEr(e=>({...e,[k]:''}))};
+const num=(v,l,max)=>!String(v).trim()?`${l} is required.`:!(Number(v)>0&&Number(v)<=max)?`Please enter a valid ${l.toLowerCase()}`:'';
+const check=st=>{const x={};
+if(st===0){x.name=p.name.trim()?'':'Name is required.';x.age=num(p.age,'Age',120);x.gender=p.gender?'':'Please select a gender';x.h=num(p.h,'Height',p.hu==='ft'?9:300);x.w=num(p.w,'Weight',p.wu==='lbs'?1000:500)}
+if(st===1){x.role=p.role.trim()?'':'Profession is required.';x.intensity=p.intensity?'':'Please select your routine intensity'}
+if(st===2){x.goal=p.goal?'':'Please choose a primary goal'}
+return x};
+const next=e=>{e.preventDefault();const x=check(s);setEr(x);if(Object.values(x).some(Boolean))return;if(s<2)setS(s+1);else done({...p,name:p.name.trim(),role:p.role.trim()})};
+const chip=(a,on,f)=><button type="button" key={a} onClick={f} className={`px-4 py-2.5 rounded-2xl text-sm font-medium spring ${on?'bg-blue-500 text-white scale-105':'bg-black/5 dark:bg-white/10'}`}>{a}</button>;
+return(<Shell><div className="flex-1 min-h-0 scroll flex p-5"><form noValidate onSubmit={next} className="glass rounded-3xl p-6 w-full max-w-sm up m-auto" key={s}>
+<div className="flex gap-1.5 mb-4">{[0,1,2].map(i=><div key={i} className={`h-1.5 flex-1 rounded-full spring ${i<=s?'bg-blue-500':'bg-black/10 dark:bg-white/10'}`}/>)}</div>
+{s===0&&<div className="space-y-2.5"><h2 className="text-xl font-bold">Personal stats</h2><p className="text-xs opacity-60">All fields are required.</p>
+<div><input className={bd(er.name)} placeholder="Name" value={p.name} onChange={e=>set('name',e.target.value)}/>{er.name&&<Err m={er.name}/>}</div>
+<div className="flex gap-2"><div className="flex-1"><input className={bd(er.age)} placeholder="Age" type="number" value={p.age} onChange={e=>set('age',e.target.value)}/>{er.age&&<Err m={er.age}/>}</div>
+<div className="flex-1"><select className={bd(er.gender)} value={p.gender} onChange={e=>set('gender',e.target.value)}><option value="">Gender</option><option>Female</option><option>Male</option><option>Other</option></select>{er.gender&&<Err m={er.gender}/>}</div></div>
+<div><div className="flex gap-2"><input className={bd(er.h)} placeholder="Height" inputMode="decimal" value={p.h} onChange={e=>set('h',e.target.value)}/><select className={bd(false)+' !w-24'} value={p.hu} onChange={e=>set('hu',e.target.value)}><option>cm</option><option>ft</option></select></div>{er.h&&<Err m={er.h}/>}</div>
+<div><div className="flex gap-2"><input className={bd(er.w)} placeholder="Weight" inputMode="decimal" value={p.w} onChange={e=>set('w',e.target.value)}/><select className={bd(false)+' !w-24'} value={p.wu} onChange={e=>set('wu',e.target.value)}><option>kg</option><option>lbs</option></select></div>{er.w&&<Err m={er.w}/>}</div></div>}
+{s===1&&<div className="space-y-3"><h2 className="text-xl font-bold">Profession & lifestyle</h2>
+<div><p className="text-sm opacity-60 mb-1.5">Profession</p><div className="flex flex-wrap gap-2 mb-2">{['Student','Working Professional','Business Owner','Homemaker'].map(a=>chip(a,p.role===a,()=>set('role',a)))}</div><input className={bd(er.role)} placeholder="Or type your work role (e.g. Student)" value={p.role} onChange={e=>set('role',e.target.value)}/>{er.role&&<Err m={er.role}/>}</div>
+<p className="text-sm opacity-60">Routine intensity</p><div className={`flex flex-wrap gap-2 rounded-2xl p-1 border border-transparent ${er.intensity?'err':''}`}>{['Calm','Normal','Hectic / High-Stress'].map(a=>chip(a,p.intensity===a,()=>set('intensity',a)))}</div>{er.intensity&&<Err m={er.intensity}/>}</div>}
+{s===2&&<div className="space-y-3"><h2 className="text-xl font-bold">Primary objective</h2><div className={`flex flex-wrap gap-2 rounded-2xl p-1 border border-transparent ${er.goal?'err':''}`}>{['Fitness & Health','Time Management','Stress Reduction','Peak Productivity'].map(a=>chip(a,p.goal===a,()=>set('goal',a)))}</div>{er.goal&&<Err m={er.goal}/>}</div>}
+<div className="flex gap-2 mt-6">{s>0&&<button type="button" onClick={()=>{setEr({});setS(s-1)}} className="px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/10 font-medium">Back</button>}
+<button type="submit" className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white font-semibold active:scale-95 spring">{s<2?'Continue':'Finish'}</button></div></form></div></Shell>)}
+
+function ShareCard({text,pct,onClose}){
+const msg=encodeURIComponent(`${text}\n— via Vitality`);
+const open=u=>{try{window.open(u,'_blank','noopener')}catch(e){}};
+return(<Modal onClose={onClose} center><button type="button" onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/55 text-white flex items-center justify-center backdrop-blur active:scale-90 spring"><I n="x" s={18}/></button><div className="rounded-3xl p-6 text-white text-center bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-orange-500 aspect-[9/12] flex flex-col justify-center gap-3">
+<I n="flame" s={40} c="mx-auto"/><div className="text-5xl font-extrabold">{pct}%</div><div className="text-sm uppercase tracking-widest opacity-80">Daily Vitality Score</div><p className="text-base mt-2 leading-snug">{text}</p><div className="text-xs opacity-70 mt-auto">Vitality · Daily Task Manager</div></div>
+<div className="grid grid-cols-3 gap-2 mt-3 text-sm font-semibold text-white">
+<button className="py-2.5 rounded-xl bg-emerald-500" onClick={()=>open('https://wa.me/?text='+msg)}>WhatsApp</button>
+<button className="py-2.5 rounded-xl bg-pink-500" onClick={()=>{navigator.clipboard&&navigator.clipboard.writeText(decodeURIComponent(msg));alert('Copied! Paste into your Instagram Story.')}}>Instagram</button>
+<button className="py-2.5 rounded-xl bg-black" onClick={()=>open('https://twitter.com/intent/tweet?text='+msg)}>X</button></div></Modal>)}
+
+const Sw=({on,onChange,disabled})=><button type="button" disabled={disabled} onClick={()=>onChange(!on)} className={`w-12 h-7 rounded-full p-0.5 spring shrink-0 ${disabled?'opacity-40':''} ${on?'bg-emerald-500':'bg-slate-300 dark:bg-white/20'}`}><div className={`w-6 h-6 rounded-full bg-white shadow spring ${on?'translate-x-5':''}`}/></button>;
+const fld="w-full rounded-2xl px-4 py-2.5 bg-black/5 dark:bg-white/10 border border-transparent";
+const Err=({m})=><p className="text-xs text-red-500 mt-1 ml-1 down">{m}</p>;
+
+const L=({l,children})=><label className="block"><span className="text-xs opacity-60 ml-1">{l}</span>{children}</label>;
+const AdSlot=({show})=><div className="spring overflow-hidden" style={{maxHeight:show?90:0,marginBottom:show?12:0,opacity:show?1:0}}><div className="glass rounded-2xl h-[78px] flex items-center gap-3 px-3"><div className="w-14 h-14 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">AD</div><div className="flex-1"><div className="text-sm font-semibold">Track every workout — FitPulse Band</div><div className="text-xs opacity-50">Sponsored · AdMob / Play Store Ads</div></div><button type="button" className="text-xs px-3 py-1.5 rounded-full bg-blue-500 text-white font-semibold">Open</button></div></div>;
+function AddForm({onAdd,time,types,ph}){
+const[title,setTitle]=useState(''),[tm,setTm]=useState('07:00'),[ty,setTy]=useState('h'),[err,setErr]=useState(false);
+const submit=e=>{e.preventDefault();const v=title.trim();if(!v){setErr(true);return}onAdd({title:v,time:tm,t:time?'m':ty});setTitle('');setErr(false)};
+return(<form onSubmit={submit} noValidate className="mt-2"><div className="flex gap-2">
+{time&&<input type="time" value={tm} onChange={e=>setTm(e.target.value)} className="rounded-xl px-2 bg-black/5 dark:bg-white/10"/>}
+{types&&<select value={ty} onChange={e=>setTy(e.target.value)} className="rounded-xl px-2 bg-black/5 dark:bg-white/10 text-sm"><option value="h">High</option><option value="l">Low</option></select>}
+<input value={title} onChange={e=>{setTitle(e.target.value);if(err)setErr(false)}} placeholder={ph} className={`flex-1 min-w-0 rounded-xl px-3 py-2 bg-black/5 dark:bg-white/10 text-sm border border-transparent ${err?'err':''}`}/>
+<button type="submit" className="w-10 rounded-xl bg-blue-500 text-white flex items-center justify-center active:scale-90 spring"><I n="plus"/></button></div>
+{err&&<Err m="Task name cannot be empty."/>}</form>)}
+
+function Water({n,target,onAdd}){
+const pct=Math.min(n/target,1)*100;
+return(<div className="flex items-center gap-4">
+<div className="relative w-28 h-28 shrink-0 rounded-full overflow-hidden border-4 border-sky-300/50 bg-sky-100/40 dark:bg-sky-900/20">
+<div className="absolute bottom-0 left-0 w-full" style={{height:pct+'%',transition:'height .9s cubic-bezier(.22,1,.36,1)'}}>
+<svg className="wave absolute left-0 w-[200%]" style={{top:-9}} height="10" viewBox="0 0 200 10" preserveAspectRatio="none"><path d="M0 5Q25 0 50 5T100 5T150 5T200 5V10H0Z" fill="#38bdf8" opacity=".6"/></svg>
+<div className="absolute inset-0 top-[1px] bg-sky-400/60"/></div>
+<div className="absolute inset-0 flex flex-col items-center justify-center"><b className="text-2xl">{n}</b><span className="text-[11px] opacity-60">of {target}</span></div></div>
+<div className="flex-1"><p className="text-sm opacity-60 mb-2">{n>=target?'Goal reached 💧':`${target-n} glass${target-n>1?'es':''} to go`}</p>
+<div className="flex gap-2"><button type="button" onClick={()=>onAdd(-1)} disabled={n<=0} className="flex-1 py-2.5 rounded-2xl bg-black/5 dark:bg-white/10 font-semibold active:scale-95 spring disabled:opacity-40">−1 Glass</button>
+<button type="button" onClick={()=>onAdd(1)} className="flex-1 py-2.5 rounded-2xl bg-sky-500 text-white font-semibold active:scale-95 spring">+1 Glass</button></div></div></div>)}
+
+function App(){
+const[S,setS]=useState(load);
+const[tab,setTab]=useState('dash'),[open,setOpen]=useState(false),[bell,setBell]=useState(false),[del,setDel]=useState(null),[ref,setRef]=useState(false),[comp,setComp]=useState(false),[exp,setExp]=useState(null),[share,setShare]=useState(null),[edit,setEdit]=useState(null),[draft,setDraft]=useState(''),[editErr,setEditErr]=useState(false),[cx,setCx]=useState({}),[rt,setRt]=useState('');
+const[toast,setToast]=useState(null),[mailErr,setMailErr]=useState(false),[editing,setEditing]=useState(false),[dp,setDp]=useState(null),[pErr,setPErr]=useState({}),[img,setImg]=useState(null),[tx,setTx]=useState(''),[txErr,setTxErr]=useState(false),[cc,setCc]=useState({}),[sc,setSc]=useState(null);
+useEffect(()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}document.documentElement.classList.toggle('dark',S.theme==='dark')},[S]);
+const up=o=>setS(s=>({...s,...o}));
+useEffect(()=>{if(!toast)return;const id=setTimeout(()=>setToast(null),toast.k==='warn'?4500:2800);return()=>clearTimeout(id)},[toast]);
+const info=m=>setToast({k:'info',m,i:Date.now()});
+const warn=m=>setToast({k:'warn',m,i:Date.now()});
+const live=S.streak.last===today()||S.streak.last===ymd(-1)?S.streak.n:0;
+// Streak popup: only on the FIRST action of each day.
+const bump=()=>{const d=today();if(S.streak.last===d)return;const n=S.streak.last===ymd(-1)?S.streak.n+1:1;up({streak:{n,last:d}});setToast({k:'streak',n,i:Date.now()})};
+// Missed-task alert: at most once per day, after 9 PM, only if mandatory/high-priority tasks remain.
+useEffect(()=>{if(!S.session||!S.profile)return;const chk=()=>{if(new Date().getHours()<21||S.missedDay===today()||!S.prefs.all||!S.prefs.deadline)return;const left=S.tasks.filter(t=>!t.done&&(t.t==='m'||t.t==='h'));if(!left.length)return;const x=`${left.length} mandatory/high-priority task${left.length>1?'s are':' is'} still incomplete today.`;up({missedDay:today(),notifs:[{g:'Today',x,tm:new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})},...S.notifs]});setToast({k:'warn',m:x,i:Date.now()});try{if(window.Notification&&Notification.permission==='granted')new Notification('Vitality',{body:x})}catch(e){}};chk();const id=setInterval(chk,60000);return()=>clearInterval(id)},[S.tasks,S.prefs,S.missedDay,S.session,S.profile]);
+const M=S.tasks.filter(t=>t.t==='m').sort((a,b)=>a.time.localeCompare(b.time));
+const pct=M.length?Math.round(M.filter(t=>t.done).length/M.length*100):0;
+const hist=[...S.hist.slice(0,6),pct];
+const glasses=S.water.d===today()?S.water.n:0;
+const toggle=id=>{const was=S.tasks.find(x=>x.id===id);if(was&&!was.done)bump();const tasks=S.tasks.map(t=>t.id===id?{...t,done:!t.done}:t);const m=tasks.filter(t=>t.t==='m');const full=m.length&&m.every(t=>t.done);up({tasks});if(full&&S.reflected!==today())setTimeout(()=>setRef(true),500)};
+const addTask=({title,time,t})=>up({tasks:[...S.tasks,{id:Date.now(),time:t==='m'?time||'12:00':'',title,t,done:false,cm:[]}]});
+const patch=(id,o)=>up({tasks:S.tasks.map(x=>x.id===id?{...x,...o}:x)});
+const startEdit=t=>{setEdit(t.id);setDraft(t.title);setEditErr(false)};
+const commit=id=>{const v=draft.trim();if(!v){setEditErr(true);return}patch(id,{title:v});setEdit(null);setEditErr(false)};
+const cancel=()=>{setEdit(null);setEditErr(false)};
+const addWater=d=>{up({water:{d:today(),n:Math.max(0,Math.min(32,glasses+d))}});if(d>0)bump()};
+const pick=e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||!f.type.startsWith('image/'))return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,800/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);setImg(c.toDataURL('image/jpeg',.7));setTxErr(false)};im.src=r.result};r.readAsDataURL(f)};
+const avgS=Math.round(hist.reduce((a,b)=>a+b,0)/7);
+const csv=()=>{const rows=hist.map((h,i)=>`${ymd(i-6)},${h}`);return['Vitality Weekly Report',`Name,"${S.profile.name}"`,`Generated,${today()}`,'','Date,Score (%)',...rows,'',`Average score (%),${avgS}`,`Current streak (days),${live}`,`Hydration today (glasses),${glasses}/${S.waterTarget}`,`Mandatory tasks done today,${M.filter(t=>t.done).length}/${M.length}`].join('\n')};
+const download=async()=>{const data=csv(),filename=`vitality-weekly-report-${today()}.csv`;try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(dl){await dl.save({filename,data});info('Report saved');return}}catch(e){if(e&&e.code==='declined')return}
+try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/csv'}));a.download=filename;document.body.appendChild(a);a.click();a.remove();info('Report downloaded')}catch(e){info('Download is not available here')}};
+const setD=o=>{setDp(q=>({...q,...o}));setPErr(e=>{const n={...e};Object.keys(o).forEach(k=>n[k]='');return n})};
+const startProfEdit=()=>{setDp({...S.profile,email:S.profile.email||''});setPErr({});setEditing(true)};
+const cancelEdit=()=>{setEditing(false);setDp(null);setPErr({})};
+const saveProfile=e=>{e.preventDefault();const d=dp;const num=(v,l,max)=>!String(v||'').trim()?`${l} is required.`:!(Number(v)>0&&Number(v)<=max)?`Please enter a valid ${l.toLowerCase()}`:'';
+const em=(d.email||'').trim();
+const x={name:(d.name||'').trim()?'':'Name is required.',email:!em?'':EMAIL.test(em)?'':'Please enter a valid email address',age:num(d.age,'Age',120),gender:d.gender?'':'Please select a gender',h:num(d.h,'Height',d.hu==='ft'?9:300),w:num(d.w,'Weight',d.wu==='lbs'?1000:500),role:(d.role||'').trim()?'':'Profession is required.',intensity:d.intensity?'':'Please select routine intensity',goal:d.goal?'':'Please select a primary goal'};
+setPErr(x);if(Object.values(x).some(Boolean))return;
+up({profile:{...d,name:d.name.trim(),email:em,role:d.role.trim()}});setEditing(false);setDp(null);info('Profile updated successfully')};
+const emailIt=()=>{const e=((S.profile&&S.profile.email)||'').trim();if(!EMAIL.test(e)){setMailErr(true);warn('Please add a valid email address in Profile Settings to receive report emails');return}setMailErr(false);info(`Weekly performance report sent to ${e}!`)};
+const setP=o=>up({profile:{...S.profile,...o}});
+const setPref=o=>up({prefs:{...S.prefs,...o}});
+const setTarget=v=>up({waterTarget:Math.max(4,Math.min(16,v))});
+const master=v=>{setPref({all:v});if(v){try{window.Notification&&Notification.requestPermission&&Notification.requestPermission()}catch(e){}}};
+
+if(!S.session)return<Auth done={s=>up({session:s})}/>;
+if(!S.profile)return<Onboard done={p=>up({profile:{...p,email:S.session.email||''}})}/>;
+
+const card="glass rounded-3xl p-4 mb-3 shadow-sm";
+const EditInput=t=><div><input autoFocus value={draft} onChange={e=>{setDraft(e.target.value);if(editErr)setEditErr(false)}} onBlur={()=>draft.trim()?commit(t.id):cancel()} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();commit(t.id)}if(e.key==='Escape')cancel()}} className={`w-full bg-black/5 dark:bg-white/10 rounded-lg px-2 py-1 border border-transparent ${editErr?'err':''}`}/>{editErr&&<Err m="Task name cannot be empty."/>}</div>;
+
+// Plain render functions (NOT components) so inputs are never remounted between keystrokes.
+const Row=t=>{const sec=t.t!=='m';return(<div className="mb-2">
+<div className="flex items-center gap-3 py-2">
+<button type="button" onClick={()=>toggle(t.id)} className={`w-7 h-7 rounded-full border-2 flex items-center justify-center spring ${t.done?'bg-emerald-500 border-emerald-500 text-white scale-110':'border-slate-300 dark:border-white/30'}`}>{t.done&&<I n="check" s={16} c="pop"/>}</button>
+<div className="flex-1 min-w-0" onClick={()=>sec&&edit!==t.id&&setExp(exp===t.id?null:t.id)}>
+{edit===t.id?EditInput(t):<div className={`font-medium truncate ${t.done?'line-through opacity-40':''}`}>{t.title}</div>}
+<div className="text-xs opacity-50">{t.time?fmt(t.time):t.t==='h'?'High priority':'Optional'}{sec&&t.cm.length>0&&` · ${t.cm.length} note${t.cm.length>1?'s':''}`}</div></div>
+{sec&&<><button type="button" onClick={()=>startEdit(t)} className="opacity-40 p-1"><I n="edit" s={16}/></button>
+<button type="button" onClick={()=>setDel(t.id)} className="text-red-500/80 p-1"><I n="trash" s={16}/></button></>}</div>
+{sec&&exp===t.id&&<div className="ml-10 down space-y-1.5 pb-2">{t.cm.map((c,i)=><div key={i} className="text-sm bg-black/5 dark:bg-white/10 rounded-xl px-3 py-1.5"><b>{c.a}:</b> {c.x}</div>)}
+<form className="flex gap-2" onSubmit={e=>{e.preventDefault();const v=(cx[t.id]||'').trim();if(!v)return;patch(t.id,{cm:[...t.cm,{a:'You',x:v}]});setCx({...cx,[t.id]:''})}}><input value={cx[t.id]||''} onChange={e=>setCx({...cx,[t.id]:e.target.value})} placeholder="Add a note…" className="flex-1 text-sm rounded-xl px-3 py-1.5 bg-black/5 dark:bg-white/10"/><button type="submit" className="text-blue-500 text-sm font-semibold">Post</button></form></div>}</div>)};
+
+const MRow=t=><div key={t.id} className="mb-2"><div className="flex items-center gap-2 py-1.5">
+<input type="time" value={t.time} onChange={e=>patch(t.id,{time:e.target.value||t.time})} className="rounded-xl px-2 py-1 bg-black/5 dark:bg-white/10 text-sm w-[104px]"/>
+<div className="flex-1 min-w-0">{edit===t.id?EditInput(t):<div className="font-medium truncate text-sm">{t.title}</div>}</div>
+<button type="button" onClick={()=>startEdit(t)} className="opacity-50 p-1"><I n="edit" s={16}/></button>
+<button type="button" onClick={()=>setDel(t.id)} className="text-red-500/80 p-1"><I n="trash" s={16}/></button></div></div>;
+
+const dash=()=>{const pend=M.filter(t=>!t.done),doneAll=S.tasks.filter(t=>t.done);const hi=S.tasks.filter(t=>t.t==='h'&&!t.done),lo=S.tasks.filter(t=>t.t==='l'&&!t.done);return(<div className="up">
+<div className={card+' flex items-center gap-4'}><Ring pct={pct} open={open} onClick={()=>setOpen(!open)}/>
+<div><p className="text-sm opacity-60">Hi, {S.profile.name} 👋</p><h2 className="text-xl font-bold leading-tight">{pct===100?'Perfect day!':'Keep going'}</h2><p className="text-xs opacity-60 mt-1">Only mandatory tasks count toward your score.</p><p className="text-xs mt-1 text-blue-500">Goal: {S.profile.goal}</p></div></div>
+<div className="spring overflow-hidden" style={{maxHeight:open?900:0,opacity:open?1:0}}><div className={card}><h3 className="font-semibold mb-1 flex items-center gap-2"><I n="star" s={16}/>Mandatory Daily Schedule <span className="text-xs opacity-50 ml-auto">100% weight</span></h3>
+{M.map(t=><React.Fragment key={t.id}>{Row(t)}</React.Fragment>)}
+<button type="button" onClick={()=>setTab('me')} className="text-xs text-blue-500 font-medium mt-1">Edit schedule in Profile → Settings</button></div></div>
+<div className={card}><h3 className="font-semibold mb-3 flex items-center gap-2 text-sky-500">💧 Hydration</h3><Water n={glasses} target={S.waterTarget} onAdd={addWater}/></div>
+<div className={card}><h3 className="font-semibold mb-1">Up next</h3>{pend.length?pend.slice(0,3).map(t=><div key={t.id} className="flex items-center gap-3 py-1.5"><div className="text-xs font-mono w-16 opacity-60">{fmt(t.time)}</div><div className="flex-1">{t.title}</div><button type="button" onClick={()=>toggle(t.id)} className="w-7 h-7 rounded-full border-2 border-slate-300 dark:border-white/30"/></div>):<p className="text-sm opacity-60">All mandatory tasks done 🎉</p>}</div>
+<div className={card}><h3 className="font-semibold mb-1 text-orange-500">High Priority <span className="text-xs opacity-50 font-normal">· 0% weight</span></h3>{hi.map(t=><React.Fragment key={t.id}>{Row(t)}</React.Fragment>)}{!hi.length&&<p className="text-sm opacity-50">Nothing here</p>}
+<h3 className="font-semibold mt-3 mb-1 opacity-70">Less Priority / Optional</h3>{lo.map(t=><React.Fragment key={t.id}>{Row(t)}</React.Fragment>)}
+<AddForm types ph="Add note task" onAdd={addTask}/></div>
+<div className={card}><button type="button" onClick={()=>setComp(!comp)} className="w-full flex justify-between font-semibold">Completed Today ({doneAll.length})<I n="chev" c={`spring ${comp?'rotate-180':''}`}/></button>
+<div className="spring overflow-hidden" style={{maxHeight:comp?600:0}}>{doneAll.map(t=><div key={t.id} className="py-1.5 text-sm flex gap-2 items-center opacity-70"><I n="check" s={14} c="text-emerald-500"/>{t.title}</div>)}</div></div></div>)};
+
+const weekly=()=>{const d=['M','T','W','T','F','S','S'];const cnt=k=>S.tasks.filter(t=>t.t===k&&t.done).length;const tot=S.tasks.filter(t=>t.done).length||1;
+const avg=Math.round(hist.reduce((a,b)=>a+b,0)/7);
+const rec=avg<60?'Try shrinking your mandatory list to 3 core habits and building up.':avg<85?'Solid consistency. Anchor your hardest task to the morning slot.':'Elite streak! Consider adding one stretch goal to your schedule.';
+return(<div className="up"><div className="grid grid-cols-2 gap-2 mb-3"><button type="button" onClick={download} className="py-3 rounded-2xl bg-blue-500 text-white font-semibold text-sm flex items-center justify-center gap-1.5 active:scale-95 spring"><I n="download" s={16}/>Download Report (CSV)</button><button type="button" onClick={emailIt} className="py-3 rounded-2xl glass font-semibold text-sm flex items-center justify-center gap-1.5 active:scale-95 spring"><I n="mail" s={16}/>Email Me Report</button></div>{mailErr&&<div className="down mb-3 rounded-2xl px-3 py-2 text-sm bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center gap-2"><span className="flex-1">Please add a valid email address in Profile Settings to receive report emails</span><button type="button" onClick={()=>{setTab('me');setMailErr(false);startProfEdit()}} className="font-semibold underline shrink-0">Add email</button></div>}<div className={card}><h3 className="font-semibold">7-Day Score <span className="opacity-50 text-sm font-normal">· avg {avg}%</span></h3>
+<div className="flex items-end gap-2 h-36 mt-3">{hist.map((h,i)=><div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end"><span className="text-[10px] opacity-60">{h}</span><div className={`w-full rounded-t-xl spring ${i===6?'bg-gradient-to-t from-blue-500 to-fuchsia-500':'bg-slate-300 dark:bg-white/20'}`} style={{height:Math.max(h,4)+'%'}}/><span className="text-[11px] opacity-60">{d[i]}</span></div>)}</div></div>
+<div className={card}><h3 className="font-semibold mb-2">Effort Breakdown</h3>{[['Mandatory','m','bg-blue-500'],['High Priority','h','bg-orange-500'],['Optional','l','bg-slate-400']].map(([l,k,c])=><div key={k} className="mb-2"><div className="flex justify-between text-sm"><span>{l}</span><span className="opacity-60">{cnt(k)} done</span></div><div className="h-2 rounded-full bg-black/5 dark:bg-white/10"><div className={`h-2 rounded-full spring ${c}`} style={{width:cnt(k)/tot*100+'%'}}/></div></div>)}</div>
+<div className={card}><h3 className="font-semibold mb-1">✨ AI Recommendations</h3><p className="text-sm opacity-80">{rec}</p><p className="text-sm opacity-80 mt-2">Hydration today: {glasses}/{S.waterTarget} glasses. As a {S.profile.intensity.toLowerCase()} routine with a goal of {S.profile.goal.toLowerCase()}, schedule a 10-minute recovery break after Deep Work.</p></div></div>)};
+
+const explore=()=><div className="up"><div className={card}><h3 className="font-semibold mb-2">Explore & Feeds</h3>
+{[['🌅','5 AM Club: Build the habit','Habits'],['💧','Hydration science in 3 minutes','Health'],['🎯','Deep work: a practical guide','Focus'],['😮‍💨','Box breathing for stress relief','Calm']].map(([e,t,c])=><div key={t} className="flex items-center gap-3 py-2.5 border-b last:border-0 border-black/5 dark:border-white/10"><div className="text-2xl w-11 h-11 rounded-2xl bg-black/5 dark:bg-white/10 flex items-center justify-center">{e}</div><div className="flex-1"><div className="font-medium text-sm">{t}</div><div className="text-xs opacity-50">{c}</div></div></div>)}</div>
+<div className={card}><h3 className="font-semibold mb-2">Follow Us</h3><div className="grid grid-cols-2 gap-2 text-sm font-medium">{[['Instagram','from-pink-500 to-orange-400'],['X (Twitter)','from-zinc-700 to-black'],['YouTube','from-red-500 to-red-700'],['Play Store','from-emerald-500 to-blue-500']].map(([n,c])=><a key={n} href="#" onClick={e=>e.preventDefault()} className={`bg-gradient-to-r ${c} text-white rounded-2xl py-3 flex items-center justify-center gap-2 active:scale-95 spring`}><I n="link" s={14}/>{n}</a>)}</div></div><AdSlot show={S.hasAd}/></div>;
+
+const upp=(id,f)=>up({posts:S.posts.map(p=>p.id===id?f(p):p)});
+const social=()=>(<div className="up"><form noValidate onSubmit={e=>{e.preventDefault();const v=tx.trim();if(!v&&!img){setTxErr(true);return}up({posts:[{id:Date.now(),u:S.profile.name,e:'🙂',x:v,img,l:0,lk:false,c:[]},...S.posts]});setTx('');setImg(null);setTxErr(false);bump()}} className={card}>
+<textarea value={tx} onChange={e=>{setTx(e.target.value);setTxErr(false)}} rows={2} placeholder="Share a milestone or thought…" className={`w-full bg-transparent resize-none rounded-xl p-1 border border-transparent ${txErr?'err':''}`}/>{txErr&&<Err m="Write something or attach a photo."/>}
+{img&&<div className="relative mt-2 w-28"><img src={img} alt="Preview" className="w-28 h-28 object-cover rounded-2xl"/><button type="button" onClick={()=>setImg(null)} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center" aria-label="Remove photo"><I n="x" s={14}/></button></div>}
+<div className="flex gap-2 justify-end mt-1"><label className="text-xs px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 cursor-pointer flex items-center gap-1"><I n="image" s={14}/>Photo<input type="file" accept="image/*" className="hidden" onChange={pick}/></label><button type="button" onClick={()=>setTx(`Today's vitality score: ${pct}% 💪`)} className="text-xs px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/10">Attach snapshot</button><button type="submit" className="text-sm px-4 py-1.5 rounded-xl bg-blue-500 text-white font-semibold">Post</button></div></form>
+{S.posts.map(p=><div key={p.id} className={card}><div className="flex items-center gap-2 mb-2"><div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-fuchsia-400 flex items-center justify-center">{p.e}</div><b className="text-sm">{p.u}</b></div>{p.x&&<p className="text-[15px]">{p.x}</p>}{p.img&&<img src={p.img} alt="" className="mt-2 rounded-2xl w-full max-h-72 object-cover"/>}
+<div className="flex gap-5 mt-3 text-sm opacity-80"><button type="button" onClick={()=>upp(p.id,q=>({...q,lk:!q.lk,l:q.l+(q.lk?-1:1)}))} className={`flex items-center gap-1 ${p.lk?'text-red-500':''}`}><I n="heart" s={18} c={p.lk?'pop fill-current':''}/>{p.l}</button>
+<button type="button" onClick={()=>setSc(sc===p.id?null:p.id)} className="flex items-center gap-1"><I n="chat" s={18}/>{p.c.length}</button>
+<button type="button" onClick={()=>setShare(p.x||'Check out my progress!')} className="flex items-center gap-1 ml-auto"><I n="share" s={18}/>Share</button></div>
+{sc===p.id&&<div className="mt-2 space-y-1.5 down">{p.c.map((c,i)=><div key={i} className="text-sm bg-black/5 dark:bg-white/10 rounded-xl px-3 py-1.5"><b>{c.a}:</b> {c.x}</div>)}
+<form className="flex gap-2" onSubmit={e=>{e.preventDefault();const v=(cc[p.id]||'').trim();if(!v)return;upp(p.id,q=>({...q,c:[...q.c,{a:'You',x:v}]}));setCc({...cc,[p.id]:''})}}><input value={cc[p.id]||''} onChange={e=>setCc({...cc,[p.id]:e.target.value})} placeholder="Comment…" className="flex-1 text-sm rounded-xl px-3 py-1.5 bg-black/5 dark:bg-white/10"/><button type="submit" className="text-blue-500 font-semibold text-sm">Send</button></form></div>}</div>)}</div>);
+
+const profile=()=>{const p=S.profile;const pr=S.prefs;return(<div className="up">
+<div className={card}>
+<div className="flex items-center gap-3"><div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white text-2xl font-bold flex items-center justify-center shrink-0">{(p.name||'?')[0]}</div>
+<div className="flex-1 min-w-0"><h2 className="text-lg font-bold truncate">{p.name}</h2><p className="text-sm opacity-60 truncate">{p.role||'Member'} · {p.intensity}</p></div>
+{!editing?<button type="button" onClick={startProfEdit} className="px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-semibold flex items-center gap-1.5 active:scale-95 spring shrink-0"><I n="edit" s={14}/>Edit Profile</button>
+:<div className="flex gap-1.5 shrink-0"><button type="button" onClick={cancelEdit} className="px-3 py-2 rounded-full bg-black/5 dark:bg-white/10 text-xs font-semibold">Cancel</button><button type="submit" form="pf" className="px-3 py-2 rounded-full bg-blue-500 text-white text-xs font-semibold active:scale-95 spring">Save Changes</button></div>}</div>
+{!editing&&<dl className="mt-3 divide-y divide-black/5 dark:divide-white/10 text-sm">{[['Email',p.email],['Age',p.age],['Gender',p.gender],['Height',p.h?`${p.h} ${p.hu}`:''],['Weight',p.w?`${p.w} ${p.wu}`:''],['Profession',p.role],['Routine intensity',p.intensity],['Primary goal',p.goal]].map(([k,v])=><div key={k} className="flex justify-between gap-4 py-2"><dt className="opacity-60 shrink-0">{k}</dt><dd className="font-medium text-right break-all">{v||<span className="text-amber-500 font-normal">Not added</span>}</dd></div>)}</dl>}
+{editing&&dp&&<form id="pf" noValidate onSubmit={saveProfile} className="mt-4 space-y-2">
+<div><L l="Name"><input className={fld+(pErr.name?' err':'')} value={dp.name||''} onChange={e=>setD({name:e.target.value})}/></L>{pErr.name&&<Err m={pErr.name}/>}</div>
+<div><L l="Email address (needed for report emails)"><input className={fld+(pErr.email?' err':'')} type="email" inputMode="email" placeholder="Email address" value={dp.email||''} onChange={e=>setD({email:e.target.value})}/></L>{pErr.email&&<Err m={pErr.email}/>}</div>
+<div className="flex gap-2"><div className="flex-1"><L l="Age"><input className={fld+(pErr.age?' err':'')} type="number" value={dp.age||''} onChange={e=>setD({age:e.target.value})}/></L>{pErr.age&&<Err m={pErr.age}/>}</div>
+<div className="flex-1"><L l="Gender"><select className={fld+(pErr.gender?' err':'')} value={dp.gender||''} onChange={e=>setD({gender:e.target.value})}><option value="">–</option><option>Female</option><option>Male</option><option>Other</option></select></L>{pErr.gender&&<Err m={pErr.gender}/>}</div></div>
+<div><L l="Height"><div className="flex gap-1"><input className={fld+(pErr.h?' err':'')} inputMode="decimal" value={dp.h||''} onChange={e=>setD({h:e.target.value})}/><select className={fld+' !w-20'} value={dp.hu||'cm'} onChange={e=>setD({hu:e.target.value})}><option>cm</option><option>ft</option></select></div></L>{pErr.h&&<Err m={pErr.h}/>}</div>
+<div><L l="Weight"><div className="flex gap-1"><input className={fld+(pErr.w?' err':'')} inputMode="decimal" value={dp.w||''} onChange={e=>setD({w:e.target.value})}/><select className={fld+' !w-20'} value={dp.wu||'kg'} onChange={e=>setD({wu:e.target.value})}><option>kg</option><option>lbs</option></select></div></L>{pErr.w&&<Err m={pErr.w}/>}</div>
+<div><L l="Profession"><input className={fld+(pErr.role?' err':'')} list="profs" placeholder="e.g. Student" value={dp.role||''} onChange={e=>setD({role:e.target.value})}/></L><datalist id="profs">{['Student','Working Professional','Business Owner','Homemaker'].map(a=><option key={a} value={a}/>)}</datalist>{pErr.role&&<Err m={pErr.role}/>}</div>
+<div><L l="Routine intensity"><select className={fld+(pErr.intensity?' err':'')} value={dp.intensity||''} onChange={e=>setD({intensity:e.target.value})}><option value="">–</option>{['Calm','Normal','Hectic / High-Stress'].map(a=><option key={a}>{a}</option>)}</select></L>{pErr.intensity&&<Err m={pErr.intensity}/>}</div>
+<div><L l="Primary goal"><select className={fld+(pErr.goal?' err':'')} value={dp.goal||''} onChange={e=>setD({goal:e.target.value})}><option value="">–</option>{['Fitness & Health','Time Management','Stress Reduction','Peak Productivity'].map(a=><option key={a}>{a}</option>)}</select></L>{pErr.goal&&<Err m={pErr.goal}/>}</div>
+<div className="grid grid-cols-2 gap-2 pt-2"><button type="button" onClick={cancelEdit} className="py-3 rounded-2xl bg-black/5 dark:bg-white/10 font-semibold">Cancel</button><button type="submit" className="py-3 rounded-2xl bg-blue-500 text-white font-semibold active:scale-95 spring">Save Changes</button></div></form>}
+</div>
+<h3 className="text-xs uppercase tracking-wider opacity-50 ml-2 mb-1.5">Settings</h3>
+
+<div className={card}><h3 className="font-semibold mb-1">Push Notifications</h3>
+<div className="flex items-center justify-between py-2"><div><div>App Notifications</div><div className="text-xs opacity-50">{pr.all?'Allowed':'Disallowed'}</div></div><Sw on={pr.all} onChange={master}/></div>
+<div className={`pl-3 border-l-2 border-black/10 dark:border-white/10 ml-1 ${pr.all?'':'opacity-50'}`}>
+<div className="flex items-center justify-between py-2"><span className="text-sm">Task Deadline Alerts</span><Sw on={pr.deadline&&pr.all} disabled={!pr.all} onChange={v=>setPref({deadline:v})}/></div>
+<div className="flex items-center justify-between py-2"><span className="text-sm">Hydration Reminders</span><Sw on={pr.water&&pr.all} disabled={!pr.all} onChange={v=>setPref({water:v})}/></div></div></div>
+<div className={card}><h3 className="font-semibold mb-2">💧 Hydration Target</h3><div className="flex items-center justify-between"><span className="text-sm opacity-70">Daily glasses (4–16)</span>
+<div className="flex items-center gap-3"><button type="button" onClick={()=>setTarget(S.waterTarget-1)} disabled={S.waterTarget<=4} className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 text-lg disabled:opacity-30">−</button><b className="w-6 text-center text-lg">{S.waterTarget}</b><button type="button" onClick={()=>setTarget(S.waterTarget+1)} disabled={S.waterTarget>=16} className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 text-lg disabled:opacity-30">+</button></div></div>
+<input type="range" min="4" max="16" value={S.waterTarget} onChange={e=>setTarget(+e.target.value)} className="w-full mt-3 accent-sky-500"/></div>
+<div className={card}><h3 className="font-semibold mb-1">Mandatory Daily Tasks</h3><p className="text-xs opacity-50 mb-2">Your permanent core schedule (100% score weight).</p>
+{M.map(t=>MRow(t))}{!M.length&&<p className="text-sm opacity-50">No mandatory tasks yet.</p>}
+<AddForm time ph="New mandatory task" onAdd={addTask}/></div>
+<div className={card}><div className="flex items-center justify-between"><span>Dark mode</span><Sw on={S.theme==='dark'} onChange={v=>up({theme:v?'dark':'light'})}/></div></div>
+{S.reflections.length>0&&<div className={card}><h3 className="font-semibold mb-1">Reflections</h3>{S.reflections.map((r,i)=><p key={i} className="text-sm py-1"><span className="opacity-50">{r.d}</span> — {r.x}</p>)}</div>}
+<button type="button" onClick={()=>{try{localStorage.removeItem(K)}catch(e){}setS({...seed,theme:S.theme})}} className="w-full py-3 rounded-2xl glass text-red-500 font-semibold">Sign Out & Reset</button></div>)};
+
+const tabs=[['dash','Dashboard','home'],['week','Weekly','chart'],['explore','Explore','compass'],['social','Community','users'],['me','Profile','user']];
+const title={dash:'Today',week:'Weekly Report',explore:'Explore',social:'Community',me:'Profile'}[tab];
+const view={dash,week:weekly,explore,social,me:profile}[tab]();
+return(<Shell>
+<header className="px-5 pt-3 pb-2 flex items-center">
+<div><p className="text-xs opacity-50 uppercase tracking-wide">{new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}</p><h1 className="text-2xl font-bold tracking-tight">{title}</h1></div>
+<div className="ml-auto flex items-center gap-2">
+<div className="flex items-center gap-1 h-10 px-3 rounded-full glass font-bold text-sm" title="Day streak"><span className={live?"glow":""}><I n="flame" s={18} c="text-orange-500 fill-orange-400"/></span>{live}</div>
+<button type="button" onClick={()=>setBell(!bell)} className="relative w-10 h-10 rounded-full glass flex items-center justify-center active:scale-90 spring" aria-label="Notifications"><I n="bell"/>{S.prefs.all&&<span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-red-500"/>}</button>
+<button type="button" onClick={()=>up({theme:S.theme==='dark'?'light':'dark'})} className="w-10 h-10 rounded-full glass flex items-center justify-center active:scale-90 spring" aria-label="Toggle theme"><I n={S.theme==='dark'?'sun':'moon'}/></button></div></header>
+{bell&&<div className="absolute z-40 left-3 right-3 top-16 down glass rounded-3xl p-4 shadow-2xl bg-white/80 dark:bg-zinc-900/80 max-h-[60%] scroll">
+<div className="flex justify-between mb-2"><b>Notification Center</b><button type="button" onClick={()=>setBell(false)}><I n="x" s={18}/></button></div>
+{!S.prefs.all?<p className="text-sm opacity-60 py-3">Notifications are off. Enable them in Profile → Settings.</p>:['Today','Yesterday'].map(g=><div key={g} className="mb-2"><p className="text-xs uppercase opacity-50 mb-1">{g}</p>{S.notifs.filter(n=>n.g===g).map((n,i)=><div key={i} className="rounded-2xl bg-black/5 dark:bg-white/10 px-3 py-2 mb-1.5 flex justify-between text-sm"><span>{n.x}</span><span className="opacity-50 text-xs ml-2 shrink-0">{n.tm}</span></div>)}</div>)}</div>}
+<div className="px-4 spring overflow-hidden" style={{maxHeight:S.hasAd?90:0,marginBottom:S.hasAd?8:0,opacity:S.hasAd?1:0}}>
+<div className="glass rounded-2xl h-[78px] flex items-center gap-3 px-3"><div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-rose-500 flex items-center justify-center text-white text-xs font-bold">AD</div><div className="flex-1"><div className="text-sm font-semibold">Fuel your day — FreshBlend Smoothies</div><div className="text-xs opacity-50">Sponsored · AdMob / Play Store Ads</div></div><button type="button" className="text-xs px-3 py-1.5 rounded-full bg-blue-500 text-white font-semibold">Install</button></div></div>
+<main className="flex-1 min-h-0 scroll px-4 pb-32 pt-1">{view}</main>
+<div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
+<nav className="pointer-events-auto w-full max-w-md mx-4 mb-3 px-2 py-2 rounded-[32px] flex justify-around backdrop-blur-xl bg-white/70 dark:bg-slate-900/80 border border-white/20 dark:border-slate-700/50 ring-1 ring-black/5 shadow-2xl shadow-black/20">
+{tabs.map(([k,l,ic])=><button type="button" key={k} onClick={()=>{setTab(k);setBell(false)}} className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl spring ${tab===k?'text-blue-500 bg-blue-500/10':'opacity-50'}`}><I n={ic} s={22}/><span className="text-[10px] font-medium">{l}</span></button>)}</nav></div>
+{del&&<Modal onClose={()=>setDel(null)} center><div className="text-center"><h3 className="font-semibold text-lg">Delete Task</h3><p className="text-sm opacity-70 mt-1">Are you sure you want to delete this task?</p></div>
+<div className="grid grid-cols-2 gap-2 mt-4"><button type="button" onClick={()=>setDel(null)} className="py-3 rounded-2xl bg-black/5 dark:bg-white/10 font-semibold">Cancel</button><button type="button" onClick={()=>{up({tasks:S.tasks.filter(t=>t.id!==del)});setDel(null)}} className="py-3 rounded-2xl bg-red-500 text-white font-semibold">Delete</button></div></Modal>}
+{ref&&<Modal onClose={()=>setRef(false)}><div className="text-center text-4xl pop">🎉</div><h3 className="font-bold text-xl text-center mt-1">100% Complete!</h3><p className="text-sm opacity-70 text-center mb-3">How was your day today? Share your thoughts/reflection</p>
+<textarea value={rt} onChange={e=>setRt(e.target.value)} rows={3} placeholder="Optional…" className="w-full rounded-2xl p-3 bg-black/5 dark:bg-white/10"/>
+<div className="grid grid-cols-2 gap-2 mt-3"><button type="button" onClick={()=>{up({reflected:today()});setRef(false)}} className="py-3 rounded-2xl bg-black/5 dark:bg-white/10 font-semibold">Skip</button><button type="button" onClick={()=>{up({reflected:today(),reflections:rt.trim()?[{d:today(),x:rt.trim()},...S.reflections]:S.reflections});setRt('');setRef(false);bump()}} className="py-3 rounded-2xl bg-blue-500 text-white font-semibold">Save</button></div></Modal>}
+{share&&<ShareCard text={share} pct={pct} onClose={()=>setShare(null)}/>}
+{toast&&<div key={toast.i} className="fixed left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-24px)] max-w-sm pointer-events-none" style={{top:'calc(10px + env(safe-area-inset-top,0px))'}}>
+<div className={`down rounded-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-xl border ${toast.k==='streak'?'bg-white/90 dark:bg-zinc-900/90 border-orange-400/50 shadow-[0_0_28px_rgba(251,146,60,.55)]':'bg-white/90 dark:bg-zinc-900/90 border-black/10 dark:border-white/10 shadow-xl'}`}>
+{toast.k==='streak'?<><span className="glow"><I n="flame" s={30} c="text-orange-500 fill-orange-400"/></span><div className="text-sm leading-tight"><b>🔥 Streak Active!</b><div className="opacity-80">You've maintained a {toast.n}-Day Streak!</div></div></>
+:<><span className={`w-7 h-7 rounded-full text-white flex items-center justify-center shrink-0 font-bold ${toast.k==='warn'?'bg-amber-500':'bg-emerald-500'}`}>{toast.k==='warn'?'!':<I n="check" s={16}/>}</span><div className="text-sm">{toast.m}</div></>}</div></div>}
+</Shell>)}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>
